@@ -1,0 +1,360 @@
+package com.bsft.android.linphoneclient.utils;
+
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.mportal.logger.MPLogger;
+import com.mportal.sbc.R;
+
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Build;
+import android.text.TextUtils;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.WindowManager;
+
+public class LibUtils
+{
+    private static String SERVER_URL = null;
+
+    public static final String LOGIN_API = "/connect/rest/user/login";
+
+    public static final String LOGOUT_API = "/connect/rest/user/logout";
+
+    public static final String GETALL_ADDRESSBOOK_API = "/connect/rest/addressbook/get/all";
+
+    public static final String ADD_ADDRESSBOOK_API = "/connect/rest/addressbook/contacts/add";
+
+    public static final String REMOVE_ADDRESSBOOK_API = "/connect/rest/addressbook/contacts/remove";
+
+    public static final String MODIFY_ADDRESSBOOK_API = "/connect/rest/addressbook/contacts/modify";
+
+    public static final String GET_CONFIGURATION_API = "/connect/rest/user/config/get";
+
+    public static final String SAVE_DEVICE_TOKEN = "/connect/rest/user/device/token/save";
+
+    public static final String GET_VOICEMAILLIST_API = "/connect/rest/voicemail/get/list?";
+
+    public static final String MODIFY_VOICEMAILSTATUS_API = "/connect/rest/voicemail/modify/status?";
+
+    public static final String MY_SERVICES_API = "/connect/rest/service/myservices";
+
+    public static final String GET_USER_PREFERENCE_API = "/connect/rest/preference/get";
+
+    public static final String ADD_USER_PREFERENCE_API = "/connect/rest/preference/add";
+
+    public static final String RESOURCE_BUNDLE_API = "/connect/rest/service/rb";
+
+    public static final String SAVE_LOGS_API = "/connect/rest/metrics/save";
+
+    public static final String DELETE_VOICEMAILLIST_API = "/connect/rest/voicemail/delete";
+
+    public static final String GLOBAL_SEARCH_API = "/connect/rest/addressbook/search";
+
+    public static final String GET_PREFERNCE_API = "/connect/rest/preference/get?";
+
+    public static final String SET_PREFERNCE_API = "/connect/rest/preference/add";
+
+    public static final String SET_PROFILE_PICTURE = "/connect/rest/picture/add";
+
+    public static final String SET_USER_DETAILS = "/connect/rest/personal/setuserdata";
+
+    public static final String CHANGE_ACCOUNT_PASSWORD = "/connect/rest/personal/changePwd";
+
+    public static final String WEB_COLLABORATION_API = "/connect/rest/webcollab/get";
+
+    public static final String WEB_COLLABORATION_HOST_TOKEN_API = "/connect/rest/webcollab/generateToken";
+
+    // TWC Specific URIs
+    public static final String DEACTIVATE_DEVICE_API = LOGOUT_API + "?";
+
+    public static final String DEVICE_PROVISIONING_API = LOGIN_API + "?_subReqType=1";
+
+    public static final String VMPIN_UPDATE_API = "/connect/rest/vm/pin/modify?";
+
+    public static final String VMPIN_VALIDATE_API = "/connect/rest/vm/pin/validate";
+
+    public static final String UPDATE_PROFILE_PICTURE = "/connect/rest/picture/update";
+
+    public static final String DOWNLOAD_VM_ATTACHMENT_API = "/connect/rest/voicemail/get/attachment?";
+
+    private static Context appContext;
+
+    private static boolean testingMode;
+
+    public static boolean UNTRUSTED_SUPPORTED = true;
+
+    private static int[] successCodeList = new int[] { 0, 9105 };
+
+    // TODO will change this later on
+    public static boolean TWC_SETTINGS = false;
+
+    public static String sipuser = null;
+
+    static String userAgent = null;
+
+    public static boolean TLS_BUILD = false;
+
+    public static void setApplicationContext(Context context)
+    {
+
+	appContext = context;
+    }
+
+    public static Context getApplicationContext()
+    {
+	return appContext;
+    }
+
+    public static String getServerURL(int requestID)
+    {
+	return LibUtils.SERVER_URL;
+    }
+
+    public static String getURLEncodedString(String str)
+    {
+	if (str != null)
+	{
+	    try
+	    {
+		return URLEncoder.encode(str, "UTF-8");
+	    }
+	    catch (Exception e)
+	    {
+		MPLogger.d("URlencoded", "Issue in URL encoder");
+	    }
+	}
+	return "";
+    }
+
+    public static String getURLDecodedString(String str)
+    {
+	if (str != null)
+	{
+	    try
+	    {
+		return URLDecoder.decode(str, "UTF-8");
+	    }
+	    catch (Exception e)
+	    {
+		MPLogger.d("URLDecoded", "Issue in URL Decoder");
+	    }
+	}
+	return "";
+    }
+
+    public static boolean isSuccessResponse(int errorCode)
+    {
+	if (successCodeList != null)
+	{
+	    for (int a : successCodeList)
+	    {
+		if (errorCode == a)
+		{
+		    return true;
+		}
+	    }
+	}
+	return false;
+    }
+
+    public static boolean isSuccessResponse(String errorCode)
+    {
+	if (errorCode != null)
+	{
+	    errorCode = errorCode.trim();
+	}
+	int err = -1;
+	try
+	{
+	    err = Integer.parseInt(errorCode);
+	}
+	catch (Exception e)
+	{
+
+	}
+	return isSuccessResponse(err);
+    }
+
+    public static String buildVersion = null;
+
+    public static enum RELEASETYPE
+    {
+	TESTING, RELEASE;
+    }
+
+    public static RELEASETYPE BUILDTYPE;
+
+    private static String domain = "";
+
+    private static boolean chatRoomEnabled;
+
+    private static String userAgentPwd;
+
+    public static boolean LOG_ENABLED;
+    
+    private static String recommandedrate = "";
+
+    public static boolean isTesting()
+    {
+	/*
+	 * if (LibUtils.BUILDTYPE.equals(LibUtils.RELEASETYPE.TESTING)) { return true; }
+	 */
+	return false;
+    }
+
+    public static int parseInteger(String argString)
+    {
+	int ret = -1;
+	if (argString != null)
+	{
+	    argString = argString.trim();
+	    try
+	    {
+		ret = Integer.parseInt(argString);
+	    }
+	    catch (Exception e)
+	    {
+
+	    }
+	}
+	return ret;
+    }
+
+    public static void getDisplayInches(StringBuffer buf)
+    {
+	DisplayMetrics dm = new DisplayMetrics();
+	WindowManager wmManager = (WindowManager) appContext.getSystemService(Context.WINDOW_SERVICE);
+	wmManager.getDefaultDisplay().getMetrics(dm);
+	double x = Math.pow(dm.widthPixels / dm.xdpi, 2);
+	double y = Math.pow(dm.heightPixels / dm.ydpi, 2);
+	double screenInches = Math.sqrt(x + y);
+	DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
+	String temp = df.format(screenInches);
+	MPLogger.d("debug", "Screen inches : " + temp);
+	buf.append(temp);
+	buf.append("_dpi-").append(dm.densityDpi);
+    }
+
+    public static void setUserAgent(String value)
+    {
+	userAgent = value;
+    }
+
+    public static String getUserAgent()
+    {
+	if (TextUtils.isEmpty(userAgent))
+	{
+	    StringBuffer buf = new StringBuffer();
+	    buf.append(Build.MANUFACTURER).append("_");
+	    getDisplayInches(buf);
+	    buf.append("_");
+	    buf.append(Build.MODEL).append("_");
+	    buf.append("Android-");
+	    buf.append(Build.VERSION.RELEASE).append("_");
+	    buf.append("AppId-");
+	    buf.append("SBConnect").append("_");
+	    try
+	    {
+		PackageInfo info = appContext.getPackageManager().getPackageInfo(appContext.getPackageName(), 0);
+		if (info != null)
+		{
+		    buf.append(info.versionName);
+		}
+	    }
+	    catch (NameNotFoundException e)
+	    {
+		buf.append("n/a");
+	    }
+	    MPLogger.d("", "UserAgent" + buf.toString());
+	    userAgent = buf.toString();
+	}
+	return userAgent;
+    }
+
+    public static String getUserAgentPwd()
+    {
+	if (TextUtils.isEmpty(userAgentPwd))
+	{
+	    StringBuffer buf = new StringBuffer();
+	    buf.append(Build.MANUFACTURER).append("_");
+	    buf.append(Build.MODEL);
+	    buf.append("_");
+	    buf.append(appContext.getPackageName());
+	    userAgentPwd = buf.toString();
+	    
+	    if(userAgentPwd != null && userAgentPwd.length() == 0)
+	    {
+		userAgentPwd = "useragent"; // if the useragentpwd is not generated then it will take it this value .. this will never happen..But to avoid problem in encryption and decryption just added.
+	    }
+	    
+	    while (userAgentPwd.length() < 32)
+	    {
+		userAgentPwd = userAgentPwd + userAgentPwd;
+	    }
+	    userAgentPwd = userAgentPwd.substring(0, 32);
+	}
+
+	return userAgentPwd;
+    }
+
+    public static void init(String serverURL, boolean chatRoomEnabled)
+    {
+	LibUtils.SERVER_URL = serverURL;
+	LibUtils.chatRoomEnabled = chatRoomEnabled;
+    }
+
+    public static String getDomain()
+    {
+	return domain;
+    }
+
+    public static void setDomain(String domain)
+    {
+	LibUtils.domain = domain;
+    }
+
+    // TODO: temp, need to read this from conf
+    public static boolean isChatRoomEnabled()
+    {
+	return chatRoomEnabled;
+    }
+
+    public static String maskField(String actString)
+    {
+	String pattern = "\"password\":\"([^,]*)\"";
+
+	Pattern p = Pattern.compile(pattern);
+	Matcher m = p.matcher(actString);
+	String retString = actString;
+	if (m.find())
+	{
+	    try
+	    {
+		retString = m.replaceAll("\"password\":\"************\"");
+	    }
+	    catch (Exception e)
+	    {
+
+	    }
+	}
+	return retString;
+    }
+
+    public static String getRecommandedrate()
+    {
+	return recommandedrate;
+    }
+
+    public static void setRecommandedrate(String recommandedrate)
+    {
+	LibUtils.recommandedrate = recommandedrate;
+    }
+}

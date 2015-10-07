@@ -1,0 +1,274 @@
+package com.bsft.android.linphoneclient;
+
+import java.util.ArrayList;
+
+import org.linphone.service.SIPConstant;
+import org.linphone.service.SIPCoreManager;
+import org.linphone.service.SIPCoreState;
+import org.linphone.service.SIPService;
+
+
+
+
+import com.bsft.android.linphoneclient.data.CodecDetails;
+import com.bsft.android.linphoneclient.utils.LibUtils;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+
+public class MainActivity extends Activity implements OnClickListener {
+
+	private Button initButton;
+	private Context mContext;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+
+		mContext = getApplicationContext();
+		initButton = (Button) findViewById(R.id.initBtn);
+		initButton.setOnClickListener(this);
+		
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void onClick(View v) {
+		switch (v.getId()) {
+		case R.id.initBtn:
+			initSIPService();
+			break;
+		}
+	}
+	
+	
+	 public void initSIPService()
+	    {
+		
+		SIPCoreManager.getInstance().setSIPCoreState(SIPCoreState.SIPCORE_INIT_SETTING_PARAMS);
+		
+
+		Intent intent = new Intent(SIPService.INIT_SIP);
+		LibUtils.setDomain(configurationDetail.getGeneralSettingsDetails().getSipdomain());
+		ArrayList<CodecDetails> audioCodecList = configurationDetail.getConfigurationSettings() != null ? configurationDetail.getConfigurationSettings().getAudioCodecs() : null;
+		ArrayList<CodecDetails> videoCodecList = configurationDetail.getConfigurationSettings() != null ? configurationDetail.getConfigurationSettings().getVideoCodecs() : null;
+		GeneralSettingsDetails generalSettings = configurationDetail.getGeneralSettingsDetails();
+
+
+		SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(mContext);
+		Editor editor = pref.edit();
+
+
+		if (audioCodecList != null)
+		{
+		    for (CodecDetails codec : audioCodecList)
+		    {
+			if (codec.getType().equalsIgnoreCase("speex32"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SPEEX32_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SPEEX32_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("speex16"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SPEEX16_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SPEEX16_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("speex8"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SPEEX8_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SPEEX8_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("ilbc"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_ILBC_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_ILBC_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("gsm"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_GSM_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_GSM_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("g722"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_G722_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_G722_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("g729"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_G722_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_G722_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("pcmu"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_PCMU_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_PCMU_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("pcma"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_PCMA_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_PCMA_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("amr"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_AMR_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_AMR_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("amrwb"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_AMR_WB_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_AMR_WB_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("silk24"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SILK24_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SILK24_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("silk16"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SILK16_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SILK16_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("silk8"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SILK8_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SILK8_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("silk12"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_SILK12_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_SILK12_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+			else if (codec.getType().equalsIgnoreCase("opus"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_OPUS_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			    editor.putInt(SIPConstant.SIP_OPUS_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+			}
+		    }
+		}
+		else
+		{
+		    // TODO: init with default values
+		}
+		if (videoCodecList != null)
+		{
+		    for (CodecDetails codec : videoCodecList)
+		    {
+			if (codec.getType().equalsIgnoreCase("mpeg4"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_MPEG4_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			}
+			else if (codec.getType().equalsIgnoreCase("g729"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_G729_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			}
+			else if (codec.getType().equalsIgnoreCase("h263"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_h263_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			}
+			else if (codec.getType().equalsIgnoreCase("vp8"))
+			{
+			    editor.putBoolean(SIPConstant.SIP_vp8_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+			}
+		    }
+		}
+		else
+		{
+		    // TODO: init with default values
+		}
+		if (generalSettings != null)
+		{
+		    // editor.putString(SIPConstant.SIP_SERVER_IP, "195.155.184.36");
+		    // editor.putString(SIPConstant.SIP_SERVER_IP, "47.168.85.208");
+		    // editor.putString(SIPConstant.SIP_SERVER_IP, "47.168.58.128");
+		    // editor.putString(SIPConstant.SIP_SERVER_IP, "91.121.209.194");
+		    if (LibUtils.TWC_SETTINGS)
+		    {
+			if (LibUtils.getDomain().equalsIgnoreCase("sip.linphone.org"))
+			{
+			    editor.putString(SIPConstant.SIP_SERVER_IP, "91.121.209.194");
+			}
+			else if (LibUtils.getDomain().equalsIgnoreCase("ims.voip.hrndva.rr.com"))
+			{
+			    editor.putString(SIPConstant.SIP_SERVER_IP, "65.185.239.121");
+			}
+			else
+			{
+			    editor.putString(SIPConstant.SIP_SERVER_IP, "65.185.239.121");
+			}
+			editor.putString(SIPConstant.SIP_SERVER_port, "5060");
+		    }
+		    else
+		    {
+			// editor.putString(SIPConstant.SIP_SERVER_IP, "65.185.239.121");
+			// 54.204.34.122
+			// editor.putString(SIPConstant.SIP_SERVER_IP, "54.204.34.122");
+
+			// actual settings
+			editor.putString(SIPConstant.SIP_SERVER_IP, generalSettings.getSipServerIP());
+			editor.putString(SIPConstant.SIP_SERVER_port, generalSettings.getSipServerPort());
+			editor.putString(SIPConstant.SIP_TRANSPORT, generalSettings.getSipTransport());
+
+			// editor.putString(SIPConstant.SIP_SERVER_port, "5061");
+			// editor.putString(SIPConstant.SIP_TRANSPORT, "tls");
+
+			if (!TextUtils.isEmpty(fsbuildUrl))
+			{
+			    editor.putString(SIPConstant.SIP_SERVER_IP, fsbuildUrl);
+			}
+			// editor.putString(SIPConstant.SIP_SERVER_IP, "10.11.252.83");
+			// editor.putString(SIPConstant.SIP_SERVER_IP, "10.11.253.22");
+		    }
+		    editor.putString(SIPConstant.CDM_SERVER_IP, generalSettings.getServerURL());
+		    editor.putString(SIPConstant.PROFILE_PICTURE_SIZE, generalSettings.getProfilePictureSize());
+		    editor.putString(SIPConstant.PROFILE_PICTURE_SUPPORTED_TYPE, generalSettings.getProfilePictureTypes());
+		    editor.putString(SIPConstant.SESSION_EXP_TIME, generalSettings.getSessionExpTime());
+		    String domain = generalSettings.getSipdomain();
+		    // String domain = "shawsmartoffice.com";
+		    // generalSettings.setSipdomain(domain);
+		    if (domain != null && domain.length() > 0)
+		    {
+			SIPConstant.SIP_DOMAIN = domain;
+			SIPConstant.SIP_CONVERSATION_DOMAIN = domain;
+		    }
+
+		    String sipwareURL = generalSettings.getSipwareURL();
+		    if (sipwareURL != null && sipwareURL.length() > 0)
+		    {
+			ModeratorEventsManager.domainAddress = sipwareURL;
+		    }
+		}
+		SIPCoreManager.getInstance().setLoggedInUserName(getLoggedInUserName());
+		editor.commit();
+		mContext.startService(intent);
+	    }
+}

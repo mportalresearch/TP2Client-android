@@ -1,0 +1,616 @@
+package com.bsft.android.linphoneclient.moderator.controls;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
+
+import com.bsft.android.linphoneclient.logger.MPLogger;
+
+
+public class ModeratorApiExecutor
+{
+
+    private String conferenceId = null;
+
+    private String callerPassCode = null;
+
+    private String connectionId = null;
+
+    private int reqtype = -1;
+
+    private String WEB_CLIENT_REQUEST_URL;
+
+    public String WEB_CLIENT_VERSION_REQUEST_URL;
+
+    private ModeratorRequestCallback reqCallbackListener;
+
+    private String targetIP = null;
+
+    private ModeratorEventsManager eventManager;
+
+    public ModeratorApiExecutor(ModeratorEventsManager manager, String confId, String address, String targetIp)
+    {
+	this.eventManager = manager;
+	this.conferenceId = confId;
+	this.targetIP = targetIp;
+	WEB_CLIENT_VERSION_REQUEST_URL = address + "version";
+	WEB_CLIENT_REQUEST_URL = address + "connections/";
+    }
+
+    public ModeratorApiExecutor setRequestType(int type)
+    {
+	reqtype = type;
+	return this;
+    }
+
+    public ModeratorApiExecutor setCallerPasscode(String passcode)
+    {
+	callerPassCode = passcode;
+	return this;
+    }
+
+    public ModeratorApiExecutor setRequestCompleteListener(ModeratorRequestCallback listener)
+    {
+	this.reqCallbackListener = listener;
+	return this;
+    }
+
+    public void execute()
+    {
+	if (!eventManager.isVersioned())
+	{
+	    getVersion();
+	}
+	else
+	{
+	    Thread thread = new Thread(new Runnable()
+	    {
+		public void run()
+		{
+		    getConnectionID();
+		}
+	    });
+	    thread.start();
+
+	}
+    }
+
+    private void getVersion()
+    {
+	MPLogger.v(ModeratorEventsManager.TAG, "getVersion");
+
+	Thread thread = new Thread(new Runnable()
+	{
+	    public void run()
+	    {
+		trustEveryone();
+		URL url = null;
+		OutputStream out = null;
+		HttpURLConnection httpURLConnection = null;
+
+		try
+		{
+
+		    url = new URL(WEB_CLIENT_VERSION_REQUEST_URL);
+		    httpURLConnection = (HttpURLConnection) url.openConnection();
+		    httpURLConnection.setRequestMethod("GET");
+		    httpURLConnection.setRequestProperty("Connection", "keep-alive");
+		    // httpURLConnection.setRequestProperty("Content-Type",
+		    // "text/plain+radproxy");
+		    httpURLConnection.setReadTimeout(10 * 1000);
+		    MPLogger.v(ModeratorEventsManager.TAG, "doVersioReq url: " + url);
+		    httpURLConnection.connect();
+
+		    // byte[] soapBody = getReqData(uri, confId);
+		    // out = httpURLConnection.getOutputStream();
+		    //
+		    // if (out != null) {
+		    // out.write(soapBody);
+		    // out.flush();
+		    // }
+
+		    processResponse(ModeratorRequestTypes.WEB_CLIENT_VERSION_REQUEST_URL, httpURLConnection);
+
+		}
+		catch (IOException e)
+		{
+		    e.printStackTrace();
+		}
+		finally
+		{
+
+		    if (httpURLConnection != null)
+		    {
+			httpURLConnection.disconnect();
+			httpURLConnection = null;
+		    }
+
+		    if (out != null)
+		    {
+			out = null;
+		    }
+		}
+	    }
+	});
+	thread.start();
+
+    }
+
+    private void getConnectionID()
+    {
+	MPLogger.v(ModeratorEventsManager.TAG, "getConnectionID");
+	trustEveryone();
+	URL url = null;
+	OutputStream out = null;
+	HttpURLConnection httpURLConnection = null;
+
+	try
+	{
+
+	    url = new URL(WEB_CLIENT_REQUEST_URL);
+	    httpURLConnection = (HttpURLConnection) url.openConnection();
+	    httpURLConnection.setRequestMethod("POST");
+	    httpURLConnection.setRequestProperty("Connection", "keep-alive");
+	    httpURLConnection.setRequestProperty("Content-Type", "text/plain+radproxy");
+	    httpURLConnection.setReadTimeout(10 * 1000);
+	    MPLogger.v(ModeratorEventsManager.TAG, "doConnectionidReq url: " + url);
+	    httpURLConnection.connect();
+
+	    processResponse(ModeratorRequestTypes.WEB_CLIENT_CONNECTIONS_ID, httpURLConnection);
+
+	}
+	catch (IOException e)
+	{
+	    e.printStackTrace();
+	}
+	finally
+	{
+
+	    if (httpURLConnection != null)
+	    {
+		httpURLConnection.disconnect();
+		httpURLConnection = null;
+	    }
+
+	    if (out != null)
+	    {
+		out = null;
+	    }
+	}
+    }
+
+    private void postWebClientRequest(int reqType)
+    {
+	trustEveryone();
+	URL url = null;
+	OutputStream out = null;
+	HttpURLConnection httpURLConnection = null;
+
+	try
+	{
+	    url = new URL(WEB_CLIENT_REQUEST_URL);
+	    httpURLConnection = (HttpURLConnection) url.openConnection();
+	    httpURLConnection.setRequestMethod("POST");
+	    httpURLConnection.setRequestProperty("Connection", "keep-alive");
+	    httpURLConnection.setRequestProperty("Content-Type", "text/plain+radproxy");
+	    httpURLConnection.setRequestProperty("SendChunked", "True");
+	    httpURLConnection.setRequestProperty("UseCookieContainer", "True");
+	    HttpURLConnection.setFollowRedirects(false);
+	    httpURLConnection.setDoOutput(true);
+	    httpURLConnection.setDoInput(true);
+	    httpURLConnection.setUseCaches(true);
+	    byte[] soapBody = getReqData(reqType);
+	    String str = new String(soapBody);
+	    MPLogger.v(ModeratorEventsManager.TAG, " reqType " + reqType + "  /n  " + str);
+	    httpURLConnection.setRequestProperty("Content-length", soapBody.length + "");
+	    httpURLConnection.setReadTimeout(10 * 1000);
+	    // httpURLConnection.setConnectTimeout(10 * 1000);
+	    MPLogger.v(ModeratorEventsManager.TAG, "postWebClientRequest url: " + url);
+	    httpURLConnection.connect();
+
+	    out = httpURLConnection.getOutputStream();
+
+	    if (out != null)
+	    {
+		out.write(soapBody);
+		out.flush();
+	    }
+
+	    if (reqType == ModeratorRequestTypes.WebClientLeaveRequest)
+	    {
+		reqType = -1;
+	    }
+	    processResponse(reqType, httpURLConnection);
+
+	}
+	catch (IOException e)
+	{
+	    e.printStackTrace();
+	}
+	finally
+	{
+
+	    if (httpURLConnection != null)
+	    {
+		httpURLConnection.disconnect();
+		httpURLConnection = null;
+	    }
+
+	    if (out != null)
+	    {
+		out = null;
+	    }
+	}
+    }
+
+    private void processResponse(int reqType, HttpURLConnection httpURLConnection)
+    {
+
+	OutputStream out = null;
+	int respCode = -1;
+
+	try
+	{
+	    if (httpURLConnection != null)
+	    {
+		respCode = httpURLConnection.getResponseCode();
+		MPLogger.v(ModeratorEventsManager.TAG, ":" + respCode);
+
+		if (respCode == 200)
+		{
+		    InputStream responce = httpURLConnection.getInputStream();
+		    String str = NetworkUtils.convertStreamToString(responce);
+		    MPLogger.v(ModeratorEventsManager.TAG, ".....data....." + new String(str));
+		    if (reqType == ModeratorRequestTypes.WEB_CLIENT_VERSION_REQUEST_URL)
+		    {
+			eventManager.setVersioned(true);
+			getConnectionID();
+		    }
+		    else if (reqType == ModeratorRequestTypes.WEB_CLIENT_CONNECTIONS_ID)
+		    {
+			String id = str.substring("Id:".length());
+			if (id != null && id.length() > 0)
+			{
+			    connectionId = id.trim();
+			    WEB_CLIENT_REQUEST_URL = WEB_CLIENT_REQUEST_URL + connectionId + "/requests";
+			    if (!eventManager.isConferenceActivated())
+			    {
+				postWebClientRequest(ModeratorRequestTypes.ActivateForConferenceRequest);
+			    }
+			    else
+			    {
+				postWebClientRequest(ModeratorRequestTypes.WebClientJoinRequest);
+			    }
+			}
+		    }
+		    else if (reqType == ModeratorRequestTypes.ActivateForConferenceRequest)
+		    {
+			eventManager.setConferenceActivated(true);
+			postWebClientRequest(ModeratorRequestTypes.WebClientJoinRequest);
+		    }
+		    else if (reqType == ModeratorRequestTypes.WebClientJoinRequest)
+		    {
+			postModeratorRequest();
+		    }
+		    else if (reqType == ModeratorRequestTypes.MUTE_REQ || reqType == ModeratorRequestTypes.UNMUTE_REQ || reqType == ModeratorRequestTypes.HOLD_REQ || reqType == ModeratorRequestTypes.OFFHOLD_REQ || reqType == ModeratorRequestTypes.KICK_REQ || reqType == ModeratorRequestTypes.LOCK_CONFERENCE_REQ || reqType == ModeratorRequestTypes.UNLOCK_CONFERENCE_REQ || reqType == ModeratorRequestTypes.START_RECORDING_CONFERENCE_REQ || reqType == ModeratorRequestTypes.STOP_RECORDING_CONFERENCE_REQ || reqType == ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ || reqType == ModeratorRequestTypes.MUTE_ALL || reqType == ModeratorRequestTypes.UNMUTE_ALL)
+		    {
+			postWebClientRequest(ModeratorRequestTypes.WebClientLeaveRequest);
+		    }
+		    else
+		    {
+			if (reqCallbackListener != null)
+			{
+			    reqCallbackListener.requestSucsess();
+			}
+			MPLogger.v(ModeratorEventsManager.TAG, "END");
+		    }
+		}
+		else
+		{
+		    if (reqCallbackListener != null)
+		    {
+			reqCallbackListener.onFailure();
+		    }
+		}
+	    }
+
+	}
+	catch (IOException e)
+	{
+	    e.printStackTrace();
+	}
+	finally
+	{
+	    if (out != null)
+	    {
+		out = null;
+	    }
+	}
+    }
+
+    private void postModeratorRequest()
+    {
+	switch (reqtype)
+	{
+	case ModeratorRequestTypes.MUTE_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.MUTE_REQ);
+	    break;
+	case ModeratorRequestTypes.UNMUTE_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.UNMUTE_REQ);
+	    break;
+	case ModeratorRequestTypes.HOLD_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.HOLD_REQ);
+	    break;
+	case ModeratorRequestTypes.OFFHOLD_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.OFFHOLD_REQ);
+	    break;
+	case ModeratorRequestTypes.KICK_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.KICK_REQ);
+	    break;
+	case ModeratorRequestTypes.LOCK_CONFERENCE_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.LOCK_CONFERENCE_REQ);
+	    break;
+	case ModeratorRequestTypes.UNLOCK_CONFERENCE_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.UNLOCK_CONFERENCE_REQ);
+	    break;
+	case ModeratorRequestTypes.START_RECORDING_CONFERENCE_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.START_RECORDING_CONFERENCE_REQ);
+	    break;
+	case ModeratorRequestTypes.STOP_RECORDING_CONFERENCE_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.STOP_RECORDING_CONFERENCE_REQ);
+	    break;
+	case ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ:
+	    postWebClientRequest(ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ);
+	    break;
+	case ModeratorRequestTypes.MUTE_ALL:
+	    postWebClientRequest(ModeratorRequestTypes.MUTE_ALL);
+	    break;
+	case ModeratorRequestTypes.UNMUTE_ALL:
+	    postWebClientRequest(ModeratorRequestTypes.UNMUTE_ALL);
+	    break;
+	}
+    }
+
+    private void trustEveryone()
+    {
+	try
+	{
+	    HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier()
+	    {
+		public boolean verify(String hostname, SSLSession session)
+		{
+		    return true;
+		}
+	    });
+	    SSLContext context = SSLContext.getInstance("TLS");
+	    context.init(null, new X509TrustManager[] { new X509TrustManager()
+	    {
+		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException
+		{
+		}
+
+		public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException
+		{
+		}
+
+		public X509Certificate[] getAcceptedIssuers()
+		{
+		    return new X509Certificate[0];
+		}
+	    } }, new SecureRandom());
+	    HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
+	}
+	catch (Exception e)
+	{
+	    e.printStackTrace();
+	}
+    }
+
+    public String createSoapHeader(int reqType)
+    {
+	String soapHeader = null;
+
+	String timestamp = String.valueOf(System.currentTimeMillis());
+	soapHeader = "TxnProxyUrl: rad://cc.radisys.com\n" + "TxnProxyMethod: POST\n\n" + "<SOAP-ENV:Envelope\nSOAP-ENV:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"\n" + "xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\"\n" + "xmlns:SOAP-ENV=\"htt://schemas.xmlsoap.org/soap/envelope/\">\n" + "<SOAP-ENV:Header xmlns:wsse=\"http://schemas.xmlsoap.org/ws/2002/07/secext\" \n xmlns:wau=\"http://schemas.xmlsoap.org/ws/2002/07/utility\">\n";
+
+	if (reqType == ModeratorRequestTypes.ActivateForConferenceRequest)
+	{
+	    soapHeader += "<targetIP>" + targetIP + "</targetIP>\n" + "<targetPort>8084</targetPort>\n";
+	}
+
+	soapHeader += "<TrxnID>" + timestamp + "</TrxnID>\n" + "</SOAP-ENV:Header>\n";
+
+	return soapHeader;
+    }
+
+    private byte[] getReqData(int reqType)
+    {
+
+	StringBuilder requestData = new StringBuilder();
+
+	requestData.append(createSoapHeader(reqType));
+
+	String body = null;
+
+	body = "<SOAP-ENV:Body>\n";
+
+	if (reqType == ModeratorRequestTypes.ActivateForConferenceRequest)
+	{
+	    body += "<m:ActivateForConferenceRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.MUTE_REQ)
+	{
+	    body += "<m:MutePartyRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.HOLD_REQ)
+	{
+	    body += "<m:HoldPartyRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.UNMUTE_REQ)
+	{
+	    body += "<m:UnmutePartyRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.OFFHOLD_REQ)
+	{
+	    body += "<m:OffholdPartyRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.KICK_REQ)
+	{
+	    body += "<m:RemovePartyRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.WebClientJoinRequest)
+	{
+	    body += "<m:WebClientJoinRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.WebClientLeaveRequest)
+	{
+	    body += "<m:WebClientLeaveRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.LOCK_CONFERENCE_REQ)
+	{
+	    body += "<m:LockConferenceRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.UNLOCK_CONFERENCE_REQ)
+	{
+	    body += "<m:UnlockConferenceRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.START_RECORDING_CONFERENCE_REQ)
+	{
+	    body += "<m:StartRecordRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.STOP_RECORDING_CONFERENCE_REQ)
+	{
+	    body += "<m:StopRecordRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ)
+	{
+	    body += "<m:PromoteParticipantRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.MUTE_ALL)
+	{
+	    body += "<m:MuteAllRequest \n";
+	}
+	else if (reqType == ModeratorRequestTypes.UNMUTE_ALL)
+	{
+	    body += "<m:UnmuteAllRequest \n";
+	}
+
+	body += "xmlns:m=\"http://schemas.pactolus.com\">\n";
+
+	if (reqType == ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ)
+	{
+	    body += "<conferenceID>" + conferenceId + "</conferenceID>\n";
+	}
+
+	if (reqType == ModeratorRequestTypes.MUTE_REQ || reqType == ModeratorRequestTypes.UNMUTE_REQ || reqType == ModeratorRequestTypes.HOLD_REQ || reqType == ModeratorRequestTypes.OFFHOLD_REQ || reqType == ModeratorRequestTypes.KICK_REQ || reqType == ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ)
+	{
+	    body += "<callerPasscode>" + callerPassCode + "</callerPasscode>\n";
+	}
+
+	// {
+	// body += "<fromConferenceID>" + conferenceId + "</fromConferenceID>\n";
+	// body += "<toConferenceID>" + conferenceId + "</toConferenceID>\n";
+	// body += "<conferencePassCode>" + newModeratorPasscode + "</conferencePassCode>\n";
+	// body += "<audioMode>" + "0" + "</audioMode>\n";
+	// body += "<confStatus>" + "1" + "</confStatus>\n";
+	// }
+
+	if (reqType != ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ)
+	{
+	    body += "<conferenceID>" + conferenceId + "</conferenceID>\n";
+	}
+
+	if (reqType == ModeratorRequestTypes.KICK_REQ)
+	{
+	    body += "<sessionID></sessionID>\n";
+	    body += "<requestID>1</requestID>\n";
+	}
+
+	if (reqType == ModeratorRequestTypes.WebClientJoinRequest)
+	{
+	    body += "<moderatorEvents>F</moderatorEvents>\n" + "<csrEvents>F</csrEvents>\n";
+	}
+
+	if (reqType == ModeratorRequestTypes.ActivateForConferenceRequest)
+	{
+	    body += "</m:ActivateForConferenceRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.MUTE_REQ)
+	{
+	    body += "</m:MutePartyRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.HOLD_REQ)
+	{
+	    body += "</m:HoldPartyRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.UNMUTE_REQ)
+	{
+	    body += "</m:UnmutePartyRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.OFFHOLD_REQ)
+	{
+	    body += "</m:OffholdPartyRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.WebClientJoinRequest)
+	{
+	    body += "</m:WebClientJoinRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.WebClientLeaveRequest)
+	{
+	    body += "</m:WebClientLeaveRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.KICK_REQ)
+	{
+	    body += "</m:RemovePartyRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.LOCK_CONFERENCE_REQ)
+	{
+	    body += "</m:LockConferenceRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.UNLOCK_CONFERENCE_REQ)
+	{
+	    body += "</m:UnlockConferenceRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.START_RECORDING_CONFERENCE_REQ)
+	{
+	    body += "</m:StartRecordRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.STOP_RECORDING_CONFERENCE_REQ)
+	{
+	    body += "</m:StopRecordRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.PROMOTE_PARTICIPANT_REQ)
+	{
+	    body += "</m:PromoteParticipantRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.MUTE_ALL)
+	{
+	    body += "</m:MuteAllRequest>\n";
+	}
+	else if (reqType == ModeratorRequestTypes.UNMUTE_ALL)
+	{
+	    body += "</m:UnmuteAllRequest>\n";
+	}
+
+	body += "</SOAP-ENV:Body>\n" + "</SOAP-ENV:Envelope>";
+
+	if (body != null)
+	{
+	    requestData.append(body);
+	}
+
+	return requestData.toString().trim().getBytes();
+    }
+
+}

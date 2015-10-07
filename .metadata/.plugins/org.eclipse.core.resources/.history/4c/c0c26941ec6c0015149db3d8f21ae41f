@@ -1,0 +1,8 @@
+package com.mportal.controllerlib.hm.moderatorcontrols;
+
+public interface ModeratorRequestCallback
+{
+    public void requestSucsess();
+
+    public void onFailure();
+}

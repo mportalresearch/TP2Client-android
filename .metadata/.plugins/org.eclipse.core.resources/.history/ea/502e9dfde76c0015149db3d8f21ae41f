@@ -1,0 +1,254 @@
+package com.bsft.android.linphoneclient;
+
+import org.linphone.service.SIPConstant;
+import org.linphone.service.SIPCoreManager;
+import org.linphone.service.SIPCoreState;
+import org.linphone.service.SIPService;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Handler.Callback;
+import android.os.Message;
+import android.os.Messenger;
+import android.preference.PreferenceManager;
+import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.Toast;
+
+import com.bsft.android.linphoneclient.logger.MPLogger;
+import com.bsft.android.linphoneclient.utils.LibUtils;
+import com.mportal.sipdata.SIPRegistrationState;
+import com.mportal.siputil.PreferenceUtil;
+
+public class MainActivity extends Activity implements OnClickListener, Callback {
+
+	private Button initButton;
+	private Context mContext;
+	private String fsbuildUrl;
+	private Handler mHandler;
+	private Messenger activityMessenger;
+	 private SIPRegistrationState currentRegistrationState;
+
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+
+		mContext = this;
+		initButton = (Button) findViewById(R.id.initBtn);
+		initButton.setOnClickListener(this);
+		mHandler = new Handler(this);
+		activityMessenger = new Messenger(mHandler);
+		
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void onClick(View v) {
+		switch (v.getId()) {
+		case R.id.initBtn:
+			setBuildURL("64.212.220.94");	
+			initSIPService();
+			mHandler.postDelayed(new Runnable()
+			{
+
+			    @Override
+			    public void run()
+			    {
+			    	SIPService.REGISTER_SIP = "com.mportal.twcsoftphone.sipservice.register"/*mContext.getString(R.string.SIP_REGISTER);*/;
+				doSIPRegistration("mobileuser1-india", "Btbc2015#", activityMessenger);
+			    }
+			}, 1000);
+
+			break;
+		}
+	}
+	
+	
+	public void setBuildURL(String value)
+    {
+	fsbuildUrl = value;
+    }
+
+	
+	 public void initSIPService()
+	    {
+		
+		SIPCoreManager.getInstance().setSIPCoreState(SIPCoreState.SIPCORE_INIT_SETTING_PARAMS);
+		
+		SIPService.INIT_SIP ="com.mportal.twcsoftphone.sipservice.init";/* mContext.getString(R.string.SIP_INIT)*/
+		Intent intent = new Intent(SIPService.class.getName());
+		intent.setAction(SIPService.INIT_SIP);
+		LibUtils.setDomain("sip.linphone.org");
+
+
+		SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(mContext);
+		Editor editor = pref.edit();
+		
+		//audiocodec
+		editor.putBoolean(SIPConstant.SIP_PCMU_CODEC_VALUE, true);
+	    editor.putInt(SIPConstant.SIP_PCMU_CODEC_CLOCK_VALUE, LibUtils.parseInteger("8000"));
+	    
+	    //videoCodec
+	    editor.putBoolean(SIPConstant.SIP_vp8_CODEC_VALUE, true);
+
+	    if (!TextUtils.isEmpty(fsbuildUrl))
+		{
+		    editor.putString(SIPConstant.SIP_SERVER_IP, fsbuildUrl);
+		    editor.putString(SIPConstant.SIP_SERVER_port, "5060");
+			editor.putString(SIPConstant.SIP_TRANSPORT,"TCP");
+		}
+
+		SIPCoreManager.getInstance().setLoggedInUserName("mobileuser1-india");
+		editor.commit();
+		startService(intent);
+	    }
+	 
+	 @Override
+	    public boolean handleMessage(Message msg)
+	    {
+		int what = msg.what;
+		
+		if (what == SIPConstant.UPDATE_REGISTRATION_STATE_CHANGED)
+		{
+
+		    Object[] obj = (Object[]) msg.obj;
+		    Bundle extraData = msg.getData();
+		    if (obj != null)
+		    {
+			SIPRegistrationState tempcstate = null;
+			int error = 0;
+			int statusCode = 0;
+			String errorMsg = null;
+			if (obj.length >= 1)
+			{
+			    tempcstate = (SIPRegistrationState) obj[0];
+			    currentRegistrationState = tempcstate;
+			    error = msg.arg1;
+			}
+			final SIPRegistrationState cstate = tempcstate;
+			if (obj.length >= 3)
+			{
+			    statusCode = (Integer) obj[1];
+			    errorMsg = (String) obj[2];
+			}
+
+			if (cstate != null)
+			{
+			    if (cstate.equals(SIPRegistrationState.RegistrationOk))
+			    {
+
+				// doPublish(PresenceActivityType.Online);
+				boolean subscribeRequired = extraData.getBoolean("subscribe");
+				final boolean publishRequired = extraData.getBoolean("publish");
+
+				if (subscribeRequired)
+				{
+				}
+				Toast.makeText(mContext, "RegistrationOk", Toast.LENGTH_LONG);
+			    }
+			    else if (cstate == SIPRegistrationState.RegistrationFailed)
+			    {
+			    	Toast.makeText(mContext, "RegistrationFailed", Toast.LENGTH_LONG);
+			    }
+			    else if (cstate == SIPRegistrationState.RegistrationProgress)
+			    {
+				if (error == 8 && errorMsg != null && errorMsg.equalsIgnoreCase("io error"))
+				{
+					Toast.makeText(mContext, "RegistrationProgress", Toast.LENGTH_LONG);
+				}
+			    }
+			}
+
+			MPLogger.d("GGGGGG", "error " + error + "errorMsg" + errorMsg + " cstate: " + cstate.toString());
+		    }
+		
+		}
+		return true;
+	    }
+	 
+	 
+	 public void doSIPRegistration(String username, String password, Messenger activityMessenger)
+	    {
+		String uName = username;
+		String pwd = password;
+		String domainName = "";
+		// uName = username.replaceAll("@" + domainName, "");
+
+		if (username == null || password == null)
+		{
+		    MPLogger.d("ERROR :", "USERNAME AND PASSWD CAN'T BE NULL");
+		    return;
+		}
+		int index = username.indexOf('@');
+		if (index > -1)
+		{
+		    uName = username.substring(0, index);
+		    domainName = username.substring(index + 1);
+		}
+		PreferenceUtil.putPrefString(mContext, "pref_username_key", username);
+		PreferenceUtil.putPrefString(mContext, "pref_passwd_key", password);
+		if (domainName.length() > 0)
+		{
+		    PreferenceUtil.putPrefString(mContext, "pref_domain_key", domainName);
+		}
+
+		{
+		    PreferenceUtil.putPrefString(mContext, "pref_username_key", LibUtils.sipuser);
+		    PreferenceUtil.putPrefString(mContext, "pref_domain_key", LibUtils.getDomain());
+		    if (LibUtils.getDomain().equalsIgnoreCase("sip.linphone.org"))
+		    {
+			PreferenceUtil.putPrefString(mContext, "pref_passwd_key", "123456");
+		    }
+		    else
+		    {
+			PreferenceUtil.putPrefString(mContext, "pref_passwd_key", "ims123456");
+			if (LibUtils.sipuser.startsWith("5126660082"))
+			{
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key", "mportal0082" + "@" + LibUtils.getDomain());
+			}
+			else if (LibUtils.sipuser.startsWith("5126660083"))
+			{
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key", "mportal0083" + "@" + LibUtils.getDomain());
+			}
+			else
+			{
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key", LibUtils.sipuser + "@" + LibUtils.getDomain());
+			}
+		    }
+		}
+
+		Intent intent = new Intent(SIPService.class.getName());
+		intent.setAction(SIPService.REGISTER_SIP);
+		t.putExtra("activityMessenger", activityMessenger);
+		startService(t);
+	    }
+}

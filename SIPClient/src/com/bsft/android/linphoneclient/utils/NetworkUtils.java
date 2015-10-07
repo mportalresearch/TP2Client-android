@@ -1,0 +1,84 @@
+package com.bsft.android.linphoneclient.utils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+
+import org.apache.http.HeaderElement;
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+
+import android.net.ParseException;
+
+public class NetworkUtils
+{
+
+    public static String getContentCharSet(final HttpEntity entity) throws ParseException
+    {
+
+	if (entity == null)
+	{
+	    throw new IllegalArgumentException("HTTP entity may not be null");
+	}
+
+	String charset = null;
+
+	if (entity.getContentType() != null)
+	{
+
+	    HeaderElement values[] = entity.getContentType().getElements();
+
+	    if (values.length > 0)
+	    {
+
+		NameValuePair param = values[0].getParameterByName("id");
+
+		if (param != null)
+		{
+
+		    charset = param.getValue();
+
+		}
+
+	    }
+
+	}
+
+	return charset;
+
+    }
+
+    public static String convertStreamToString(InputStream is) throws UnsupportedEncodingException
+    {
+	BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+	StringBuilder sb = new StringBuilder();
+	String line = null;
+	try
+	{
+	    while ((line = reader.readLine()) != null)
+	    {
+		sb.append(line + "\n");
+	    }
+	}
+	catch (IOException e)
+	{
+	    e.printStackTrace();
+	}
+	finally
+	{
+	    try
+	    {
+		is.close();
+	    }
+	    catch (IOException e)
+	    {
+		e.printStackTrace();
+	    }
+	}
+	return sb.toString().trim();
+
+    }
+
+}

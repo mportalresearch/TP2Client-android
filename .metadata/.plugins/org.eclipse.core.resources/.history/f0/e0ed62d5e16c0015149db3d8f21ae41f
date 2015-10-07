@@ -1,0 +1,415 @@
+package com.bsft.android.linphoneclient;
+
+import org.linphone.service.SIPConstant;
+import org.linphone.service.SIPCoreManager;
+import org.linphone.service.SIPCoreState;
+import org.linphone.service.SIPService;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Handler.Callback;
+import android.os.Message;
+import android.os.Messenger;
+import android.preference.PreferenceManager;
+import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+
+import com.bsft.android.linphoneclient.utils.LibUtils;
+
+public class MainActivity extends Activity implements OnClickListener, Callback {
+
+	private Button initButton;
+	private Context mContext;
+	private String fsbuildUrl;
+	private Handler mHandler;
+	private Messenger activityMessenger;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+
+		mContext = getApplicationContext();
+		initButton = (Button) findViewById(R.id.initBtn);
+		initButton.setOnClickListener(this);
+		mHandler = new Handler(this);
+		activityMessenger = new Messenger(mHandler);
+		
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void onClick(View v) {
+		switch (v.getId()) {
+		case R.id.initBtn:
+			setBuildURL("64.212.220.94");	
+			initSIPService();
+			mHandler.postDelayed(new Runnable()
+			{
+
+			    @Override
+			    public void run()
+			    {
+				doSIPRegistration("mobileuser1-india", "Btbc2015#", activityMessenger);
+			    }
+			}, 1000);
+
+			break;
+		}
+	}
+	
+	
+	public void setBuildURL(String value)
+    {
+	fsbuildUrl = value;
+    }
+
+	
+	 public void initSIPService()
+	    {
+		
+		SIPCoreManager.getInstance().setSIPCoreState(SIPCoreState.SIPCORE_INIT_SETTING_PARAMS);
+		
+
+		Intent intent = new Intent(SIPService.INIT_SIP);
+		LibUtils.setDomain("ims.eng.rr.com");
+
+
+		SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(mContext);
+		Editor editor = pref.edit();
+		
+		//audiocodec
+		editor.putBoolean(SIPConstant.SIP_PCMU_CODEC_VALUE, true);
+	    editor.putInt(SIPConstant.SIP_PCMU_CODEC_CLOCK_VALUE, LibUtils.parseInteger("8000"));
+	    
+	    //videoCodec
+	    editor.putBoolean(SIPConstant.SIP_vp8_CODEC_VALUE, true);
+
+	    if (!TextUtils.isEmpty(fsbuildUrl))
+		{
+		    editor.putString(SIPConstant.SIP_SERVER_IP, fsbuildUrl);
+		    editor.putString(SIPConstant.SIP_SERVER_port, "5060");
+			editor.putString(SIPConstant.SIP_TRANSPORT,"TCP");
+		}
+
+//		if (audioCodecList != null)
+//		{
+//		    for (CodecDetails codec : audioCodecList)
+//		    {
+//			if (codec.getType().equalsIgnoreCase("speex32"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SPEEX32_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SPEEX32_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("speex16"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SPEEX16_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SPEEX16_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("speex8"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SPEEX8_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SPEEX8_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("ilbc"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_ILBC_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_ILBC_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("gsm"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_GSM_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_GSM_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("g722"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_G722_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_G722_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("g729"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_G722_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_G722_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("pcmu"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_PCMU_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_PCMU_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("pcma"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_PCMA_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_PCMA_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("amr"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_AMR_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_AMR_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("amrwb"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_AMR_WB_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_AMR_WB_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("silk24"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SILK24_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SILK24_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("silk16"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SILK16_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SILK16_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("silk8"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SILK8_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SILK8_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("silk12"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_SILK12_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_SILK12_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//			else if (codec.getType().equalsIgnoreCase("opus"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_OPUS_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			    editor.putInt(SIPConstant.SIP_OPUS_CODEC_CLOCK_VALUE, LibUtils.parseInteger(codec.getClockRate()));
+//			}
+//		    }
+//		}
+//		else
+//		{
+//		    // TODO: init with default values
+//		}
+//		if (videoCodecList != null)
+//		{
+//		    for (CodecDetails codec : videoCodecList)
+//		    {
+//			if (codec.getType().equalsIgnoreCase("mpeg4"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_MPEG4_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			}
+//			else if (codec.getType().equalsIgnoreCase("g729"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_G729_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			}
+//			else if (codec.getType().equalsIgnoreCase("h263"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_h263_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			}
+//			else if (codec.getType().equalsIgnoreCase("vp8"))
+//			{
+//			    editor.putBoolean(SIPConstant.SIP_vp8_CODEC_VALUE, codec.getEnable().equalsIgnoreCase("true") ? true : false);
+//			}
+//		    }
+//		}
+//		else
+//		{
+//		    // TODO: init with default values
+//		}
+//		
+		
+//		if (generalSettings != null)
+//		{
+//		    // editor.putString(SIPConstant.SIP_SERVER_IP, "195.155.184.36");
+//		    // editor.putString(SIPConstant.SIP_SERVER_IP, "47.168.85.208");
+//		    // editor.putString(SIPConstant.SIP_SERVER_IP, "47.168.58.128");
+//		    // editor.putString(SIPConstant.SIP_SERVER_IP, "91.121.209.194");
+//		    if (LibUtils.TWC_SETTINGS)
+//		    {
+//			if (LibUtils.getDomain().equalsIgnoreCase("sip.linphone.org"))
+//			{
+//			    editor.putString(SIPConstant.SIP_SERVER_IP, "91.121.209.194");
+//			}
+//			else if (LibUtils.getDomain().equalsIgnoreCase("ims.voip.hrndva.rr.com"))
+//			{
+//			    editor.putString(SIPConstant.SIP_SERVER_IP, "65.185.239.121");
+//			}
+//			else
+//			{
+//			    editor.putString(SIPConstant.SIP_SERVER_IP, "65.185.239.121");
+//			}
+//			editor.putString(SIPConstant.SIP_SERVER_port, "5060");
+//		    }
+//		    else
+//		    {
+//			// editor.putString(SIPConstant.SIP_SERVER_IP, "65.185.239.121");
+//			// 54.204.34.122
+//			// editor.putString(SIPConstant.SIP_SERVER_IP, "54.204.34.122");
+//
+//			// actual settings
+//			editor.putString(SIPConstant.SIP_SERVER_IP, generalSettings.getSipServerIP());
+//			editor.putString(SIPConstant.SIP_SERVER_port, generalSettings.getSipServerPort());
+//			editor.putString(SIPConstant.SIP_TRANSPORT, generalSettings.getSipTransport());
+//
+//			// editor.putString(SIPConstant.SIP_SERVER_port, "5061");
+//			// editor.putString(SIPConstant.SIP_TRANSPORT, "tls");
+//
+//			if (!TextUtils.isEmpty(fsbuildUrl))
+//			{
+//			    editor.putString(SIPConstant.SIP_SERVER_IP, fsbuildUrl);
+//			}
+//			// editor.putString(SIPConstant.SIP_SERVER_IP, "10.11.252.83");
+//			// editor.putString(SIPConstant.SIP_SERVER_IP, "10.11.253.22");
+//		    }
+//		    editor.putString(SIPConstant.CDM_SERVER_IP, generalSettings.getServerURL());
+//		    editor.putString(SIPConstant.PROFILE_PICTURE_SIZE, generalSettings.getProfilePictureSize());
+//		    editor.putString(SIPConstant.PROFILE_PICTURE_SUPPORTED_TYPE, generalSettings.getProfilePictureTypes());
+//		    editor.putString(SIPConstant.SESSION_EXP_TIME, generalSettings.getSessionExpTime());
+//		    String domain = generalSettings.getSipdomain();
+//		    // String domain = "shawsmartoffice.com";
+//		    // generalSettings.setSipdomain(domain);
+//		    if (domain != null && domain.length() > 0)
+//		    {
+//			SIPConstant.SIP_DOMAIN = domain;
+//			SIPConstant.SIP_CONVERSATION_DOMAIN = domain;
+//		    }
+//
+//		    String sipwareURL = generalSettings.getSipwareURL();
+//		    if (sipwareURL != null && sipwareURL.length() > 0)
+//		    {
+//			ModeratorEventsManager.domainAddress = sipwareURL;
+//		    }
+//		}
+		SIPCoreManager.getInstance().setLoggedInUserName("mobileuser1-india");
+		editor.commit();
+		mContext.startService(intent);
+	    }
+	 
+	 @Override
+	    public boolean handleMessage(Message msg)
+	    {
+		int what = msg.what;
+		return true;
+	    }
+	 
+	 
+	 public void doSIPRegistration(String username, String password, Messenger activityMessenger)
+	    {
+		String uName = username;
+		String pwd = password;
+		String domainName = "";
+		// uName = username.replaceAll("@" + domainName, "");
+
+		if (username == null || password == null)
+		{
+		    MPLogger.d("ERROR :", "USERNAME AND PASSWD CAN'T BE NULL");
+		    return;
+		}
+		int index = username.indexOf('@');
+		if (index > -1)
+		{
+		    uName = username.substring(0, index);
+		    domainName = username.substring(index + 1);
+		}
+		PreferenceUtil.putPrefString(mContext, "pref_username_key", uName);
+		PreferenceUtil.putPrefString(mContext, "pref_passwd_key", pwd);
+		if (domainName.length() > 0)
+		{
+		    PreferenceUtil.putPrefString(mContext, "pref_domain_key", domainName);
+		}
+		if (!LibUtils.TWC_SETTINGS)
+		{
+		    if (connectConfigurationDetail != null)
+		    {
+			TWCConfigDetail customerSetting = connectConfigurationDetail.getCustomerSettings();
+			if (customerSetting != null)
+			{
+			    String digestPassword = customerSetting.getSipDigestKey();
+			    if (digestPassword != null)
+			    {
+				String directoryNumber = loggedInUserResponeseBean.getTwcLoginRequestBean().getNumberList().get(0).getDirectoryNumber();
+				// Temporary fix
+				// PreferenceUtil.putPrefString(mContext, "pref_username_key", username);
+
+				index = customerSetting.getSipPrivateKey().indexOf('@');
+				if (index > -1)
+				{
+				    uName = customerSetting.getSipPrivateKey().substring(0, index);
+				}
+				PreferenceUtil.putPrefString(mContext, "pref_username_key", uName);
+				PreferenceUtil.putPrefString(mContext, "pref_domain_key", LibUtils.getDomain());
+				// End
+
+				PreferenceUtil.putPrefString(mContext, "pref_passwd_key", digestPassword);
+
+				PreferenceUtil.putPrefString(mContext, "pref_username_key1", username);
+				PreferenceUtil.putPrefString(mContext, "pref_domain_key1", LibUtils.getDomain());
+				PreferenceUtil.putPrefString(mContext, "pref_passwd_key1", digestPassword);
+				PreferenceUtil.putPrefString(mContext, "pref_tn_proxy_idx", "1");
+				PreferenceUtil.putPrefBoolean(mContext, mContext.getString(R.string.pref_enable_outbound_proxy_key) + "1", true);
+			    }
+			    String sipPrivateKey = customerSetting.getSipPrivateKey();
+			    if (sipPrivateKey != null && sipPrivateKey.length() > 0)
+			    {
+				if (sipPrivateKey.indexOf("@") == -1)
+				{
+				    sipPrivateKey = sipPrivateKey + "@" + LibUtils.getDomain();
+				}
+				PreferenceUtil.putPrefString(mContext, "pref_privateid_key", sipPrivateKey);
+			    }
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key1", sipPrivateKey);
+
+			}
+		    }
+		}
+		else
+		{
+		    PreferenceUtil.putPrefString(mContext, "pref_username_key", LibUtils.sipuser);
+		    PreferenceUtil.putPrefString(mContext, "pref_domain_key", LibUtils.getDomain());
+		    if (LibUtils.getDomain().equalsIgnoreCase("sip.linphone.org"))
+		    {
+			PreferenceUtil.putPrefString(mContext, "pref_passwd_key", "123456");
+		    }
+		    else
+		    {
+			PreferenceUtil.putPrefString(mContext, "pref_passwd_key", "ims123456");
+			if (LibUtils.sipuser.startsWith("5126660082"))
+			{
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key", "mportal0082" + "@" + LibUtils.getDomain());
+			}
+			else if (LibUtils.sipuser.startsWith("5126660083"))
+			{
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key", "mportal0083" + "@" + LibUtils.getDomain());
+			}
+			else
+			{
+			    PreferenceUtil.putPrefString(mContext, "pref_privateid_key", LibUtils.sipuser + "@" + LibUtils.getDomain());
+			}
+		    }
+		}
+
+		Intent t = new Intent(SIPService.REGISTER_SIP);
+		t.putExtra("activityMessenger", activityMessenger);
+		t.putExtra("controllerMessenger", controllerMessenger);
+		mContext.startService(t);
+	    }
+}

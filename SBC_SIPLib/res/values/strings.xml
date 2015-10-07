@@ -1,0 +1,7 @@
+<resources>
+
+    <string name="app_name">SBC_SIPLib</string>
+    <string name="authorization_header">&lt;sip:%1$s?Authorization=</string>
+    <string name="authorization_value">Digest username=\"%1$s\",realm=\"%2$s\",nonce=\"\",uri=\"sip:%3$s\",response=\"\"</string>
+
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="SIP_INIT">com.mportal.twcsoftphone.sipservice.init</string>
+    <string name="SIP_NETWORK_CHANGE">com.mportal.twcsoftphone.sipservice.networkstate_change</string>
+    <string name="SIP_SCREENSTATE_CHANGE">com.mportal.twcsoftphone.sipservice.screenstate_change</string>
+    <string name="SIP_REGISTER">com.mportal.twcsoftphone.sipservice.register</string>
+    <string name="SIP_CHAT">com.mportal.twcsoftphone.sipservice.chat</string>
+    <string name="SIP_CALL">com.mportal.twcsoftphone.sipservice.call</string>
+    <string name="SIP_ENDCALL">com.mportal.twcsoftphone.sipservice.endcall</string>
+    <string name="SIP_CONFERENCE">com.mportal.twcsoftphone.sipservice.conference</string>
+    <string name="SIP_INCOMING_CALL_ACCEPT">com.mportal.twcsoftphone.sipservice.incomingcall_accept</string>
+    <string name="SIP_SWITCH_VIDEO">com.mportal.twcsoftphone.sipservice.incomingcall_switchToVideo</string>
+    <string name="SIP_UNREGISTER">com.mportal.twcsoftphone.sipservice.unregister</string>
+    <string name="SIP_CONVERSATION_INVITE">com.mportal.twcsoftphone.sipservice.conversationInvite</string>
+    <string name="SIP_PUBLISH_EVENTS">com.mportal.twcsoftphone.sipservice.publishEvents</string>
+    <string name="SIP_HM_ADD_CALLBACK">com.mportal.twcsoftphone.sipservice.handle_management_add_callback</string>
+    <string name="SIP_HM_REMOVE_CALLBACK">com.mportal.twcsoftphone.sipservice.handle_management_remove_callback</string>
+    <string name="SIP_ACTIVE_CONVERSATION">com.mportal.twcsoftphone.sipservice.hm_subcribe_active_conversation</string>
+    <string name="SIP_CUSTOM_FEATURE">com.mportal.twcsoftphone.sipservice.customfeature</string>
+    <string name="SIP_REGISTER_ALARM">com.mportal.twcsoftphone.sipservice.registeralarm</string>
+
+</resources>

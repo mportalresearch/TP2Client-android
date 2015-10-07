@@ -1,0 +1,8 @@
+INDEX VERSION 1.127+D:\Connections-Workspace\LinphoneTest\.metadata\.plugins\org.eclipse.jdt.core
+1423049063.index
+3465306185.index
+1748808576.index
+140806640.index
+3004981096.index
+3141720171.index
+3078491470.index
